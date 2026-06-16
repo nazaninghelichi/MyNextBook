@@ -3,7 +3,7 @@ import requests
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=True)
 
 def _get_api_key() -> str | None:
     key = os.getenv("GOOGLE_BOOKS_API_KEY")
