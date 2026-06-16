@@ -123,16 +123,15 @@ else:
     use_model = model
 
 with st.spinner("Finding your next books…"):
-    # Genre boost: re-rank by genre affinity if genres were selected
-    recs = use_model.recommend(st.session_state.liked_books, candidates, top_n=top_n * 2)
     if liked_genres:
-        n = len(recs)
-        for i, book in enumerate(recs):
-            pos   = 1.0 - i / max(n, 1)
-            match = len(set(book.get("categories", [])) & set(liked_genres))
-            book["_score"] = pos + 0.35 * match
-        recs = sorted(recs, key=lambda x: x["_score"], reverse=True)
-    recs = recs[:top_n]
+        genre_candidates = [
+            b for b in candidates
+            if set(b.get("categories", [])) & set(liked_genres)
+        ]
+        pool = genre_candidates if len(genre_candidates) >= top_n else candidates
+    else:
+        pool = candidates
+    recs = use_model.recommend(st.session_state.liked_books, pool, top_n=top_n)
 
 div = list_diversity(recs)
 c1, c2, c3 = st.columns(3)
