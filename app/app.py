@@ -54,7 +54,8 @@ def cached_search(query: str) -> list[dict]:
     try:
         return search_books(query, max_results=8)
     except Exception as e:
-        st.error(f"Search failed: {e}")
+        status = getattr(getattr(e, "response", None), "status_code", None)
+        st.error(f"Search failed (HTTP {status}). Check that the Google Books API is enabled for your key.")
         return []
 
 
