@@ -11,34 +11,16 @@ st.set_page_config(page_title="MyNextBook", page_icon="📚", layout="wide")
 
 st.markdown("""
 <style>
-    :root {
-        --primary-color: #ffffff;
-        --background-color: #0a0a0a;
-        --secondary-background-color: #141414;
-        --text-color: #e0e0e0;
-    }
-    .stApp { background-color: #0a0a0a; color: #e0e0e0; }
-    section[data-testid="stSidebar"] { background-color: #111111; border-right: 1px solid #222; }
+    .stApp { background-color: #ffffff; color: #111111; }
+    section[data-testid="stSidebar"] { background-color: #f7f7f7; border-right: 1px solid #e0e0e0; }
     .stButton > button {
-        background-color: #1a1a1a;
-        color: #cccccc;
-        border: 1px solid #333;
+        background-color: #ffffff;
+        color: #111111;
+        border: 1px solid #cccccc;
         border-radius: 4px;
     }
-    .stButton > button:hover { background-color: #2a2a2a; border-color: #555; color: #fff; }
-    .stTextInput > div > div > input {
-        background-color: #1a1a1a; color: #e0e0e0; border-color: #333;
-    }
-    .stSelectbox > div > div { background-color: #1a1a1a; color: #e0e0e0; border-color: #333; }
-    .stMultiSelect > div { background-color: #1a1a1a; border-color: #333; }
-    .stSlider > div > div > div > div { background-color: #555; }
-    div[data-testid="stMetricValue"] { color: #ffffff; }
-    div[data-testid="stMetricLabel"] { color: #888888; }
-    hr { border-color: #222; }
-    .stExpander { border: 1px solid #222; background-color: #111; }
-    .stAlert { background-color: #1a1a1a; color: #aaaaaa; border-color: #333; }
-    h1, h2, h3 { color: #ffffff; }
-    .stCaption { color: #888888; }
+    .stButton > button:hover { background-color: #f0f0f0; border-color: #999; }
+    hr { border-color: #e0e0e0; }
 </style>
 """, unsafe_allow_html=True)
 
