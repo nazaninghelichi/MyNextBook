@@ -51,12 +51,7 @@ def load_model(model_name: str, csv_path: str):
 
 @st.cache_data(show_spinner=False)
 def cached_search(query: str) -> list[dict]:
-    try:
-        return search_books(query, max_results=8)
-    except Exception as e:
-        status = getattr(getattr(e, "response", None), "status_code", None)
-        st.error(f"Search failed (HTTP {status}). Check that the Google Books API is enabled for your key.")
-        return []
+    return search_books(query, max_results=8)
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -73,7 +68,12 @@ with st.sidebar:
         st.session_state.liked_books = []
 
     if query:
-        results = cached_search(query)
+        try:
+            results = cached_search(query)
+        except Exception as e:
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            st.error(f"Search unavailable (HTTP {status}).")
+            results = []
         for book in results:
             already = any(b["id"] == book["id"] for b in st.session_state.liked_books)
             label = f"{'✓ ' if already else ''}{book['title'][:40]}"
