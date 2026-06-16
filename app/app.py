@@ -51,7 +51,11 @@ def load_model(model_name: str, csv_path: str):
 
 @st.cache_data(show_spinner=False)
 def cached_search(query: str) -> list[dict]:
-    return search_books(query, max_results=8)
+    try:
+        return search_books(query, max_results=8)
+    except Exception as e:
+        st.error(f"Search failed: {e}")
+        return []
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
