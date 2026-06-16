@@ -181,7 +181,22 @@ with st.spinner("Finding your next books…"):
         pool = genre_candidates if len(genre_candidates) >= top_n else candidates
     else:
         pool = candidates
-    recs = use_model.recommend(st.session_state.liked_books, pool, top_n=top_n)
+    raw = use_model.recommend(st.session_state.liked_books, pool, top_n=top_n * 3)
+
+    # Cap at 2 books per author for variety
+    liked_authors = {a for b in st.session_state.liked_books for a in b.get("authors", [])}
+    author_count: dict[str, int] = {}
+    recs = []
+    for book in raw:
+        authors = tuple(book.get("authors", ["Unknown"]))
+        key = authors[0] if authors else "Unknown"
+        if key in liked_authors:
+            continue
+        if author_count.get(key, 0) < 2:
+            recs.append(book)
+            author_count[key] = author_count.get(key, 0) + 1
+        if len(recs) == top_n:
+            break
 
 div = list_diversity(recs)
 c1, c2, c3 = st.columns(3)
