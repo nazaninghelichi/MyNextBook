@@ -106,8 +106,9 @@ if len(st.session_state.liked_books) < 3:
 
 model, catalogue = load_model(model_name, str(CSV_PATH))
 
-liked_ids  = {b["id"] for b in st.session_state.liked_books}
-candidates = [b for b in catalogue if b["id"] not in liked_ids]
+liked_ids    = {b["id"] for b in st.session_state.liked_books}
+liked_titles = {b["title"].lower().strip() for b in st.session_state.liked_books}
+candidates   = [b for b in catalogue if b["id"] not in liked_ids and b["title"].lower().strip() not in liked_titles]
 
 # If any liked books are outside the catalogue, refit with them included
 extra = [b for b in st.session_state.liked_books if b["id"] not in {c["id"] for c in catalogue}]
