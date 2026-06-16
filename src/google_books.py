@@ -4,7 +4,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-_API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY")
+def _get_api_key() -> str | None:
+    key = os.getenv("GOOGLE_BOOKS_API_KEY")
+    if not key:
+        try:
+            import streamlit as st
+            key = st.secrets.get("GOOGLE_BOOKS_API_KEY")
+        except Exception:
+            pass
+    return key
+
+_API_KEY = _get_api_key()
 _BASE_URL = "https://www.googleapis.com/books/v1/volumes"
 
 
