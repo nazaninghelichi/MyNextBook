@@ -174,6 +174,14 @@ class HybridRecommender(BaseRecommender):
             mn, mx = arr.min(), arr.max()
             return (arr - mn) / (mx - mn + 1e-9)
 
-        hybrid = self.alpha * _minmax(st_scores) + (1 - self.alpha) * _minmax(tfidf_scores)
-        ranked = sorted(zip(pool, hybrid), key=lambda x: x[1], reverse=True)
-        return [b for b, _ in ranked[:top_n]]
+        tfidf_norm = _minmax(tfidf_scores)
+        st_norm    = _minmax(st_scores)
+        hybrid     = self.alpha * st_norm + (1 - self.alpha) * tfidf_norm
+        ranked = sorted(
+            zip(pool, hybrid, tfidf_norm, st_norm),
+            key=lambda x: x[1], reverse=True,
+        )
+        return [
+            {**b, "hybrid_score": round(float(h), 4), "tfidf_score": round(float(t), 4), "st_score": round(float(s), 4)}
+            for b, h, t, s in ranked[:top_n]
+        ]
