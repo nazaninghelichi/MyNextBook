@@ -1,15 +1,18 @@
 import os
 import requests
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 def _get_api_key() -> str | None:
     key = os.getenv("GOOGLE_BOOKS_API_KEY")
     if not key:
         try:
             import streamlit as st
-            key = st.secrets.get("GOOGLE_BOOKS_API_KEY")
+            val = st.secrets.get("GOOGLE_BOOKS_API_KEY", "")
+            if val and not val.startswith("PASTE"):
+                key = val
         except Exception:
             pass
     return key
