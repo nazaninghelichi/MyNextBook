@@ -14,14 +14,14 @@ def _get_api_key() -> str | None:
             pass
     return key
 
-_API_KEY = _get_api_key()
 _BASE_URL = "https://www.googleapis.com/books/v1/volumes"
 
 
 def _params(**kwargs):
     p = dict(kwargs)
-    if _API_KEY:
-        p["key"] = _API_KEY
+    key = _get_api_key()
+    if key:
+        p["key"] = key
     return p
 
 
