@@ -154,7 +154,5 @@ for i, book in enumerate(recs):
             st.caption(" · ".join(cats[:2]))
         if book.get("average_rating"):
             st.caption(f"{'★' * round(book['average_rating'])} {book['average_rating']}")
-        if book.get("description"):
-            with st.expander("About"):
-                desc = book["description"]
-                st.write(desc[:400] + ("…" if len(desc) > 400 else ""))
+        query = "+".join((book["title"] + " " + " ".join(book.get("authors", [])[:1])).split())
+        st.markdown(f"[Buy on Amazon](https://www.amazon.com/s?k={query})")
