@@ -49,13 +49,11 @@ def _parse(item: dict) -> dict:
 def search_books(
     query: str,
     max_results: int = 20,
-    lang: str = "en",
     start_index: int = 0,
 ) -> list[dict]:
     params = _params(
         q=query,
         maxResults=min(max_results, 40),
-        langRestrict=lang,
         startIndex=start_index,
     )
     resp = requests.get(_BASE_URL, params=params, timeout=10)
