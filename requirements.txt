@@ -1,0 +1,13 @@
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+scikit-surprise
+sentence-transformers
+streamlit
+jupyter
+datasets
+python-dotenv
+requests
+tqdm

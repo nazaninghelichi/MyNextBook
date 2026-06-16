@@ -1,0 +1,174 @@
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+import streamlit as st
+from pathlib import Path
+
+from src.google_books import search_books
+from src.evaluation import diversity as list_diversity
+
+st.set_page_config(page_title="MyNextBook", page_icon="📚", layout="wide")
+
+st.markdown("""
+<style>
+    :root {
+        --primary-color: #ffffff;
+        --background-color: #0a0a0a;
+        --secondary-background-color: #141414;
+        --text-color: #e0e0e0;
+    }
+    .stApp { background-color: #0a0a0a; color: #e0e0e0; }
+    section[data-testid="stSidebar"] { background-color: #111111; border-right: 1px solid #222; }
+    .stButton > button {
+        background-color: #1a1a1a;
+        color: #cccccc;
+        border: 1px solid #333;
+        border-radius: 4px;
+    }
+    .stButton > button:hover { background-color: #2a2a2a; border-color: #555; color: #fff; }
+    .stTextInput > div > div > input {
+        background-color: #1a1a1a; color: #e0e0e0; border-color: #333;
+    }
+    .stSelectbox > div > div { background-color: #1a1a1a; color: #e0e0e0; border-color: #333; }
+    .stMultiSelect > div { background-color: #1a1a1a; border-color: #333; }
+    .stSlider > div > div > div > div { background-color: #555; }
+    div[data-testid="stMetricValue"] { color: #ffffff; }
+    div[data-testid="stMetricLabel"] { color: #888888; }
+    hr { border-color: #222; }
+    .stExpander { border: 1px solid #222; background-color: #111; }
+    .stAlert { background-color: #1a1a1a; color: #aaaaaa; border-color: #333; }
+    h1, h2, h3 { color: #ffffff; }
+    .stCaption { color: #888888; }
+</style>
+""", unsafe_allow_html=True)
+
+CSV_PATH = Path(__file__).parent.parent / "data" / "raw" / "books.csv"
+
+GENRES = [
+    "Science Fiction", "Fantasy", "Mystery", "Thriller", "Historical Fiction",
+    "Biography", "History", "Psychology", "Philosophy", "Self-Help",
+    "Business", "Science", "Romance", "Young Adult", "Technology",
+]
+
+
+@st.cache_resource(show_spinner="Loading model…")
+def load_model(model_name: str, csv_path: str):
+    from src.models import TFIDFRecommender, SentenceTransformerRecommender, HybridRecommender
+    from src.data_loader import load_books
+
+    catalogue = load_books(csv_path, clean=True, verbose=False) if Path(csv_path).exists() else []
+    model = {
+        "Hybrid":               HybridRecommender(alpha=0.6),
+        "Sentence Transformer": SentenceTransformerRecommender(),
+        "TF-IDF":               TFIDFRecommender(),
+    }[model_name]
+    if catalogue:
+        model.fit(catalogue)
+    return model, catalogue
+
+
+@st.cache_data(show_spinner=False)
+def cached_search(query: str) -> list[dict]:
+    return search_books(query, max_results=8)
+
+
+# ── Sidebar ───────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.title("📚 MyNextBook")
+
+    st.subheader("Your preferences")
+    liked_genres = st.multiselect("Favourite genres", GENRES, max_selections=3)
+
+    st.subheader("Search for books you like")
+    query = st.text_input("Title, author, or topic", placeholder="e.g. Dune, Tolkien…")
+
+    if "liked_books" not in st.session_state:
+        st.session_state.liked_books = []
+
+    if query:
+        results = cached_search(query)
+        for book in results:
+            already = any(b["id"] == book["id"] for b in st.session_state.liked_books)
+            label = f"{'✓ ' if already else ''}{book['title'][:40]}"
+            if st.button(label, key=f"add_{book['id']}", disabled=already):
+                st.session_state.liked_books.append(book)
+                st.rerun()
+
+    if st.session_state.liked_books:
+        st.subheader(f"Your list ({len(st.session_state.liked_books)})")
+        for book in list(st.session_state.liked_books):
+            col1, col2 = st.columns([5, 1])
+            col1.caption(book["title"][:35])
+            if col2.button("✕", key=f"rm_{book['id']}"):
+                st.session_state.liked_books = [
+                    b for b in st.session_state.liked_books if b["id"] != book["id"]
+                ]
+                st.rerun()
+
+    st.divider()
+    model_name = st.selectbox("Model", ["Hybrid", "Sentence Transformer", "TF-IDF"])
+    top_n = st.slider("Results", 5, 20, 10)
+
+
+# ── Main area ─────────────────────────────────────────────────────────────────
+st.header("Your recommendations")
+
+if len(st.session_state.liked_books) < 3:
+    st.info(f"Add at least 3 books in the sidebar to get recommendations. "
+            f"({len(st.session_state.liked_books)} added so far)")
+    st.stop()
+
+model, catalogue = load_model(model_name, str(CSV_PATH))
+
+liked_ids  = {b["id"] for b in st.session_state.liked_books}
+candidates = [b for b in catalogue if b["id"] not in liked_ids]
+
+# If any liked books are outside the catalogue, refit with them included
+extra = [b for b in st.session_state.liked_books if b["id"] not in {c["id"] for c in catalogue}]
+if extra:
+    from src.models import TFIDFRecommender, SentenceTransformerRecommender, HybridRecommender
+    fresh = {"Hybrid": HybridRecommender(0.6), "Sentence Transformer": SentenceTransformerRecommender(),
+             "TF-IDF": TFIDFRecommender()}[model_name]
+    with st.spinner("Fitting model…"):
+        fresh.fit(catalogue + extra)
+    use_model = fresh
+else:
+    use_model = model
+
+with st.spinner("Finding your next books…"):
+    # Genre boost: re-rank by genre affinity if genres were selected
+    recs = use_model.recommend(st.session_state.liked_books, candidates, top_n=top_n * 2)
+    if liked_genres:
+        n = len(recs)
+        for i, book in enumerate(recs):
+            pos   = 1.0 - i / max(n, 1)
+            match = len(set(book.get("categories", [])) & set(liked_genres))
+            book["_score"] = pos + 0.35 * match
+        recs = sorted(recs, key=lambda x: x["_score"], reverse=True)
+    recs = recs[:top_n]
+
+div = list_diversity(recs)
+c1, c2, c3 = st.columns(3)
+c1.metric("Recommendations", len(recs))
+c2.metric("Based on", f"{len(st.session_state.liked_books)} books")
+c3.metric("Diversity", f"{div:.2f}")
+
+st.divider()
+
+cols = st.columns(5)
+for i, book in enumerate(recs):
+    with cols[i % 5]:
+        if book.get("thumbnail"):
+            st.image(book["thumbnail"], width=120)
+        st.markdown(f"**{book['title']}**")
+        if book.get("authors"):
+            st.caption(", ".join(book["authors"][:2]))
+        cats = book.get("categories", [])
+        if cats:
+            st.caption(" · ".join(cats[:2]))
+        if book.get("average_rating"):
+            st.caption(f"{'★' * round(book['average_rating'])} {book['average_rating']}")
+        if book.get("description"):
+            with st.expander("About"):
+                desc = book["description"]
+                st.write(desc[:400] + ("…" if len(desc) > 400 else ""))
