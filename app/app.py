@@ -123,10 +123,8 @@ with st.sidebar:
         try:
             results = cached_search(query)
         except Exception as e:
-            resp = getattr(e, "response", None)
-            status = getattr(resp, "status_code", None)
-            body = resp.text[:300] if resp is not None else str(e)
-            st.error(f"Search unavailable (HTTP {status}): {body}")
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            st.error(f"Search unavailable (HTTP {status}).")
             results = []
         for book in results:
             already = any(b["id"] == book["id"] for b in st.session_state.liked_books)
