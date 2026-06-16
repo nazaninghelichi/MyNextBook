@@ -49,7 +49,6 @@ def load_model(model_name: str, csv_path: str):
     return model, catalogue
 
 
-@st.cache_data(show_spinner=False)
 def cached_search(query: str) -> list[dict]:
     return search_books(query, max_results=8)
 
