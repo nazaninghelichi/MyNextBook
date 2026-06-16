@@ -7,14 +7,24 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=True)
 
 def _get_api_key() -> str | None:
     key = os.getenv("GOOGLE_BOOKS_API_KEY")
+    source = "env"
     if not key:
         try:
             import streamlit as st
             val = st.secrets.get("GOOGLE_BOOKS_API_KEY", "")
             if val and not val.startswith("PASTE"):
                 key = val
-        except Exception:
-            pass
+                source = "secrets"
+            else:
+                source = f"secrets_raw={repr(val[:10]) if val else 'empty'}"
+        except Exception as e:
+            source = f"secrets_error={e}"
+
+    try:
+        import streamlit as st
+        st.sidebar.caption(f"🔑 key source: {source} | prefix: {key[:8] if key else 'NONE'}")
+    except Exception:
+        pass
     return key
 
 _BASE_URL = "https://www.googleapis.com/books/v1/volumes"
